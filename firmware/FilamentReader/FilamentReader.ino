@@ -21,7 +21,7 @@ Encoder filamentEncoder(2, 3);
 
 // Diameter of the gear or wheel attached to the encoder, this can be
 // tweaked as necessary to achieve accurate results.
-float gearDiameter = 10.9495;
+float gearDiameter = 14.4615;
 
 // Number of pulses produces by the encoder for one full rotation.
 // This is normally mentioed in the spec sheet.
@@ -69,7 +69,7 @@ void loop() {
         Serial.print(",");
         Serial.print((currentMeasurement - previousMeasurement) / encoderCountPerMM);
         Serial.print(",");
-        Serial.println(currentMeasurement / encoderCountPerMM);
+        Serial.println(currentMeasurement / encoderCountPerMM, 3);
         
         // Update our timestamp
         previousMeasurement = currentMeasurement;
