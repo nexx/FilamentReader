@@ -30,61 +30,91 @@ unsigned int encoderRotationCount = 2400;
 // Calculate the encoder pulses required for 1mm of movement.
 float encoderCountPerMM = encoderRotationCount / (gearDiameter * 3.14159);
 
-// Polling rate in milliseconds
-unsigned int pollingRate = 1000;
+// Polling intverval in ms
+int interval = 100;
 
-// Used to track timing and stats
-unsigned long startTime;
-unsigned long previousTime = 0;
+// State tracking
+bool measureActive = false;
+String serialData = "";
+bool serialDataComplete = false;
+
+// Used to track extruded amount
+unsigned long currentMeasurement = 0;
 unsigned long previousMeasurement = 0;
-bool runningMeasurement = false;
 
 void setup() {
-  // Open the serial port 9600bps is fast enough
-  Serial.begin(9600);
+  // Open the serial port, use 115200 to allow ample bandwidth
+  // for high sampling rates
+  Serial.begin(115200);
+  serialData.reserve(10);
 
   // Reset the encoder
-  filamentEncoder.write(0);
+  resetEncoder();
 }
 
 void loop() {
-  // Wait for movement
-  if (!runningMeasurement) {
-    while (filamentEncoder.read() == 0) {
-      delay(10);
-      startTime = millis();
-    }
-    runningMeasurement = true;
-    previousMeasurement = 0;
-  } else {
-    // Record the current time
-    unsigned long currentTime = millis();
+  // Capture the encoder reading prior to anything else
+  currentMeasurement = filamentEncoder.read();
+  float result = 0;
 
-    // Run measurement if polling rate has elapsed
-    if (currentTime - previousTime >= pollingRate) {
-      unsigned long currentMeasurement = filamentEncoder.read();
-
-      if (currentMeasurement != previousMeasurement) {
-        Serial.print(currentTime - startTime);
-        Serial.print(",");
-        Serial.print((currentMeasurement - previousMeasurement) / encoderCountPerMM);
-        Serial.print(",");
-        Serial.println(currentMeasurement / encoderCountPerMM, 3);
-        
-        // Update our timestamp
-        previousMeasurement = currentMeasurement;
-        previousTime = currentTime;
-      } else {
-        // Reset everything and wait
-        previousTime = 0;
-        previousMeasurement = 0;
-        runningMeasurement = false;
-        Serial.println();
-
-        // Sleep before resetting the encoder to avoid remeasurement whilst settling
-        delay(4000);
-        filamentEncoder.write(0);
+  // Handle incoming serial data
+  if (serialDataComplete) {
+    if (serialData.startsWith("B") || serialData.startsWith("b")) {
+      resetEncoder();
+      measureActive = true;
+    } else if (serialData.startsWith("I") || serialData.startsWith("i")) {
+      serialData = serialData.substring(1);
+      if (serialData.toInt()) {
+        interval = serialData.toInt();
       }
+    } else if (serialData.startsWith("R") || serialData.startsWith("r")) {
+      resetEncoder();
+    } else if (serialData.startsWith("S") || serialData.startsWith("s")) {
+      measureActive = false;
+    }
+
+    // Clear serial data and flag
+    serialData = "";
+    serialDataComplete = false;
+  }
+
+  // Run measurement if enabled
+  // FIXME: Catch and handle the encoder rollover 0 > 4294967295
+  if (measureActive) {
+    if (currentMeasurement > previousMeasurement) {
+      // We've extruded filament
+      result = (currentMeasurement - previousMeasurement) / encoderCountPerMM;
+    } else if (currentMeasurement < previousMeasurement) {
+      // We've retracted filament
+      result = 0 - ((previousMeasurement - currentMeasurement) / encoderCountPerMM);
+    }
+    
+    // Output result to the serial console to 4 decimal accuracy
+    Serial.print(result, 4);
+    Serial.print(",");
+    Serial.println(currentMeasurement / encoderCountPerMM);
+    previousMeasurement = currentMeasurement;
+    delay(interval);
+  }
+}
+
+// Used to reset the encoder stats to 0
+void resetEncoder() {
+  // Reset the encoder to 0
+  filamentEncoder.write(0);
+
+  // Reset our tracking variables
+  currentMeasurement = 0;
+  previousMeasurement = 0;
+}
+
+// Handle incoming serial data
+void serialEvent() {
+  while (Serial.available()) {
+    char inChar = (char)Serial.read();
+    serialData += inChar;
+    if (inChar == '\n') {
+      serialDataComplete = true;
     }
   }
 }
