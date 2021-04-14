@@ -51,9 +51,8 @@ unsigned long previousMeasurement = 0;
 bool report_relative = false;
 
 void setup() {
-  // Open the serial port, use 115200 to allow ample bandwidth
-  // for high sampling rates
-  Serial.begin(115200);
+  // Open the serial port at 9600 baud.
+  Serial.begin(9600);
   serialData.reserve(32);
 
   // Check the EEPROM for the calibrated value, use that if
@@ -67,16 +66,6 @@ void setup() {
   // Calculate the encoder pulses required for 1mm of movement.
   encoderCountPerMM = encoderRotationCount / (gearDiameter * PI);
   
-  // Output a welcome message
-  Serial.print("NXE|");
-  Serial.print(String(compile_version));
-  Serial.print("|");
-  Serial.print(String(compile_date));
-  Serial.print("|");
-  Serial.print(interval);
-  Serial.print("|");
-  Serial.println(gearDiameter, 6);
-
   // Reset the encoder
   resetEncoder();
 }
@@ -88,8 +77,19 @@ void loop() {
 
   // Handle incoming serial data
   if (serialDataComplete) {
+    if (serialData.startsWith("INFO")) {
+      // Output a welcome message
+      Serial.print("NXE|");
+      Serial.print(String(compile_version));
+      Serial.print("|");
+      Serial.print(String(compile_date));
+      Serial.print("|");
+      Serial.print(interval);
+      Serial.print("|");
+      Serial.println(gearDiameter, 6);
+    }
     if (serialData.startsWith("ABS")) {
-        report_relative = false;
+      report_relative = false;
     } else if (serialData.startsWith("REL")) {
       report_relative = false;
     } else if (serialData.startsWith("START")) {
