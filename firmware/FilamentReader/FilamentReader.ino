@@ -63,6 +63,16 @@ void setup() {
     gearDiameter = calEEPROM;
   }
 
+  // Output a welcome message
+  Serial.print("NXE|");
+  Serial.print(String(compile_version));
+  Serial.print("|");
+  Serial.print(String(compile_date));
+  Serial.print("|");
+  Serial.print(interval);
+  Serial.print("|");
+  Serial.println(gearDiameter, 6);
+
   // Calculate the encoder pulses required for 1mm of movement.
   encoderCountPerMM = encoderRotationCount / (gearDiameter * PI);
   
@@ -77,17 +87,6 @@ void loop() {
 
   // Handle incoming serial data
   if (serialDataComplete) {
-    if (serialData.startsWith("INFO")) {
-      // Output a welcome message
-      Serial.print("NXE|");
-      Serial.print(String(compile_version));
-      Serial.print("|");
-      Serial.print(String(compile_date));
-      Serial.print("|");
-      Serial.print(interval);
-      Serial.print("|");
-      Serial.println(gearDiameter, 6);
-    }
     if (serialData.startsWith("ABS")) {
       report_relative = false;
     } else if (serialData.startsWith("REL")) {
