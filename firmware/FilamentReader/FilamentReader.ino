@@ -91,7 +91,7 @@ void loop() {
     if (serialData.startsWith("ABS")) {
       report_relative = false;
     } else if (serialData.startsWith("REL")) {
-      report_relative = false;
+      report_relative = true;
     } else if (serialData.startsWith("START")) {
       resetEncoder();
       measureActive = true;
