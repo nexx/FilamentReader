@@ -26,11 +26,14 @@ const float compile_version = 1.1;
 
 // Diameter of the gear or wheel attached to the encoder, this can be
 // tweaked as necessary to achieve accurate results.
-float gearDiameter = 14.30;
+// MK8 Extruder gear    = ~11.00
+float gearDiameter = 10.9885;
 
 // Number of pulses produces by the encoder for one full rotation.
 // This is normally mentioed in the spec sheet.
-const unsigned int encoderRotationCount = 2400;
+// LPD3806-600BM-G5-24C = 2400
+// AMT102-V (2048 PPR)  = 8192
+const unsigned int encoderRotationCount = 8192;
 
 // Used to store the calculated encoder per MM value.
 float encoderCountPerMM = 0.00;
@@ -112,7 +115,7 @@ void loop() {
       serialData = serialData.substring(3);
       if (serialData.toFloat()) {
         float calDistance = serialData.toFloat();
-        float calDiameter = ((calDistance / currentMeasurement) * 2400) / PI;
+        float calDiameter = ((calDistance / currentMeasurement) * encoderRotationCount) / PI;
         Serial.print("CALIBRATED DIAMETER: ");
         Serial.println(calDiameter, 6);
 
